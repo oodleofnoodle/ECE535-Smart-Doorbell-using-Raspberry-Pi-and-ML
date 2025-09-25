@@ -10,8 +10,7 @@ We want to deploy ML systems on the Raspberry Pi with a camera module to design 
 • Learn how to deploy ML models on Raspberry Pi
 • Implement a lightweight face detection or person detection model using TensorFlow Lite.
 • Build a simple system that, when someone appears at the door, captures an image and classify
-• The final output should be a code snippet and demonstration running inference directly on
-Raspberry Pi
+• The final output should be a code snippet and demonstration running inference directly on Raspberry Pi
 
 # System Blocks 
 
@@ -23,8 +22,6 @@ Pi Camera
 # Software Requirements 
 TensorFlow Lite
 
-# Team Member Responsibilities
-
 # Project Timeline
 Sep 28 : Project Proposal Submission
 Oct 1  : Research and test hardware and ML models 
@@ -33,4 +30,13 @@ Oct 1  : Research and test hardware and ML models
 Howard, A. et al., MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications (lightweight CNN background). (https://arxiv.org/abs/1704.04861)
 
 
-# Team Lead Roles
+# Team Member Responsibilities and Lead Roles 
+Jessie Wang - 
+
+Alex Andoni - 
+
+Lucas Crawshaw - 
+
+
+
+
