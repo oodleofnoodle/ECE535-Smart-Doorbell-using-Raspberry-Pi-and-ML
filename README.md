@@ -103,7 +103,7 @@ Research and implement post-processing actions
 Investigate lightweight ML models for Raspberry Pi
 Configuring the Pi’s Wi-Fi or Ethernet connection
 
-
+Vinayak Kapur - Lead: ML Optimization, Phone Alerts, and Detection Responsibilities: Develop and tune models for detection and work on dynamic phone alerts and classifying delivery workers/suspicious activity. Assist in model training and hyperparameter tuning. 
 
 
 
