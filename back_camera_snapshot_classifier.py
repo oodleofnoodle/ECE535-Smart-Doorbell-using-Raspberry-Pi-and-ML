@@ -1,12 +1,14 @@
 """
-Capture one frame from the back camera, save it to disk, reload it, and classify with faces.h5.
-Uses CameraCapture for grabbing frames and mirrors the prototype-style save->process flow.
+Capture frames from the back camera, save them to disk, reload, and classify with faces.h5.
+Takes multiple pictures (spaced by capture_interval_sec) and optionally sends SMS alerts
+for suspicious detections.
 """
 
 from pathlib import Path
 from datetime import datetime
 import sys
 import queue
+import time
 from typing import Optional, Tuple
 
 import cv2
@@ -14,12 +16,14 @@ import numpy as np
 from keras.models import load_model
 
 from camera_capture import CameraCapture
+from sms import send_sms
 
 
 MODEL_PATH = "/home/aandoni/Desktop/ECE535-SmartDoorbell/ECE535-Smart-Doorbell-using-Raspberry-Pi-and-ML/faces.h5"
 
 # Update the class names if you retrain the model with different labels.
 CLASS_NAMES = ["den", "brad", "angie", "dman", "sussy"]
+ALERT_CLASSES = {"dman", "sussy"}
 
 # Input size used during training.
 IMG_SIZE: Tuple[int, int] = (224, 224)
@@ -73,6 +77,24 @@ def save_frame_to_dir(frame: np.ndarray, output_dir: Path) -> Path:
     return path
 
 
+def maybe_send_sms(label: str, to_number: Optional[str]):
+    """
+    Send an SMS when the label matches alert classes.
+    """
+    if label not in ALERT_CLASSES:
+        return
+
+    if not to_number:
+        print("SMS alert skipped: SMS recipient not configured.", file=sys.stderr)
+        return
+
+    message = f"Doorbell alert: {label} detected on the back camera."
+    try:
+        send_sms(to_number, message)
+    except Exception as exc:
+        print(f"SMS send failed: {exc}", file=sys.stderr)
+
+
 def main():
     # Fixed configuration values (no CLI args).
     source = "0"  # back camera index
@@ -82,9 +104,12 @@ def main():
     rotate_180 = False
     timeout = 3.0
     output_dir = Path(
-    "/home/aandoni/Desktop/ECE535-SmartDoorbell/ECE535-Smart-Doorbell-using-Raspberry-Pi-and-ML/pictures/captured_back_frames/"
-)
-    model = load_classifier(MODEL_PATH)
+        "/home/aandoni/Desktop/ECE535-SmartDoorbell/ECE535-Smart-Doorbell-using-Raspberry-Pi-and-ML/pictures/captured_back_frames/"
+    )
+    capture_interval_sec = 5.0  # seconds between captures
+    num_pictures = 3  # how many pictures to take in this run
+    sms_to_number: Optional[str] = None  # e.g., "+15555555555" to enable alerts
+    model = load_classifier(Path(MODEL_PATH))
 
     capture = CameraCapture(
         camera_name="back_camera",
@@ -98,22 +123,28 @@ def main():
     capture.start()
 
     try:
-        frame = get_latest_frame(capture, timeout=timeout)
-        if frame is None:
-            raise RuntimeError("No frame received from back camera.")
+        for shot_idx in range(num_pictures):
+            frame = get_latest_frame(capture, timeout=timeout)
+            if frame is None:
+                raise RuntimeError("No frame received from back camera.")
 
-        if rotate_180:
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
+            if rotate_180:
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
 
-        saved_path = save_frame_to_dir(frame, output_dir)
+            saved_path = save_frame_to_dir(frame, output_dir)
 
-        reloaded = cv2.imread(str(saved_path))
-        if reloaded is None:
-            raise RuntimeError(f"Failed to reload saved image at {saved_path}")
+            reloaded = cv2.imread(str(saved_path))
+            if reloaded is None:
+                raise RuntimeError(f"Failed to reload saved image at {saved_path}")
 
-        label = predict_person(model, reloaded)
-        print(label)
-        print(f"Saved frame to {saved_path}")
+            label = predict_person(model, reloaded)
+            print(label)
+            print(f"Saved frame to {saved_path}")
+
+            maybe_send_sms(label, sms_to_number)
+
+            if shot_idx < num_pictures - 1:
+                time.sleep(capture_interval_sec)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
