@@ -1,19 +1,20 @@
 """
 Classify a face from the front camera using the faces.h5 model.
-Captures a single frame, runs the classifier, and prints the predicted class.
+Captures a single frame from camera index 0, runs the classifier, and prints the predicted class.
+Sends an SMS alert for specific classes when configured.
 """
 
 from pathlib import Path
 import argparse
 import sys
+import time
 from typing import Optional, Tuple
 
 import cv2
 import numpy as np
-import queue
 from tensorflow.keras.models import load_model
 
-from camera_capture import CameraCapture
+from sms import send_sms
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -47,35 +48,72 @@ def predict_person(model, frame: np.ndarray) -> str:
     return str(class_id)
 
 
-def get_latest_frame(capture: CameraCapture, timeout: float) -> Optional[np.ndarray]:
+def open_camera(camera_index: int, resolution: Tuple[int, int]) -> cv2.VideoCapture:
     """
-    Pull the most recent frame from the capture queue, dropping buffered frames.
+    Open a camera device with the requested resolution.
     """
-    try:
-        frame_data = capture.frame_queue.get(timeout=timeout)
-    except queue.Empty:
+    cap = cv2.VideoCapture(camera_index)
+    if not cap.isOpened():
+        raise RuntimeError(f"Failed to open camera at index {camera_index}")
+
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
+    return cap
+
+
+def capture_frame(
+    cap: cv2.VideoCapture,
+    timeout: float,
+    rotate_180: bool = False,
+) -> Optional[np.ndarray]:
+    """
+    Capture a single frame from an open VideoCapture within a timeout.
+    """
+    deadline = time.time() + timeout
+    last_frame: Optional[np.ndarray] = None
+
+    while time.time() < deadline:
+        ret, frame = cap.read()
+        if ret and frame is not None:
+            last_frame = frame
+            break
+        time.sleep(0.05)
+
+    if last_frame is None:
         return None
 
-    try:
-        while True:
-            frame_data = capture.frame_queue.get_nowait()
-    except queue.Empty:
-        pass
+    if rotate_180:
+        last_frame = cv2.rotate(last_frame, cv2.ROTATE_180)
 
-    return frame_data.frame if frame_data is not None else None
+    return last_frame
+
+
+def maybe_send_sms(label: str, to_number: Optional[str]):
+    """
+    Send an SMS when the label matches alert classes.
+    """
+    alert_classes = {"dman", "sussy"}
+    if label not in alert_classes:
+        return
+
+    if not to_number:
+        print("SMS alert skipped: no --sms-to number provided.", file=sys.stderr)
+        return
+
+    message = f"Doorbell alert: {label} detected at the door."
+    try:
+        send_sms(to_number, message)
+    except Exception as exc:  # Catch-all so detection still returns a result
+        print(f"SMS send failed: {exc}", file=sys.stderr)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Classify a face from the front camera.")
+    parser = argparse.ArgumentParser(description="Classify a face from camera index 0.")
     parser.add_argument(
-        "--source",
-        default="1",
-        help="Camera index or path for the front camera (default: 1).",
-    )
-    parser.add_argument(
-        "--use-picamera2",
-        action="store_true",
-        help="Use PiCamera2 for capture (set when running on Raspberry Pi).",
+        "--camera-index",
+        type=int,
+        default=0,
+        help="Camera index to open (default: 0).",
     )
     parser.add_argument(
         "--resolution",
@@ -96,36 +134,34 @@ def main():
         default=3.0,
         help="Seconds to wait for a frame before failing (default: 3.0).",
     )
+    parser.add_argument(
+        "--sms-to",
+        help="Phone number to receive SMS alerts when 'dman' or 'sussy' are detected.",
+    )
     args = parser.parse_args()
 
     model = load_classifier(MODEL_PATH)
 
-    capture = CameraCapture(
-        camera_name="front_camera",
-        source=args.source,
-        target_fps=5,
-        resolution=tuple(args.resolution),
-        use_picamera2=args.use_picamera2,
-        max_queue_size=5,
-    )
-
-    capture.start()
+    cap = open_camera(args.camera_index, tuple(args.resolution))
 
     try:
-        frame = get_latest_frame(capture, timeout=args.timeout)
+        frame = capture_frame(
+            cap=cap,
+            timeout=args.timeout,
+            rotate_180=args.rotate_180,
+        )
         if frame is None:
-            raise RuntimeError("No frame received from front camera.")
-
-        if args.rotate_180:
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
+            raise RuntimeError("No frame received from the camera.")
 
         label = predict_person(model, frame)
         print(label)
+
+        maybe_send_sms(label, args.sms_to)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
     finally:
-        capture.stop()
+        cap.release()
 
 
 if __name__ == "__main__":

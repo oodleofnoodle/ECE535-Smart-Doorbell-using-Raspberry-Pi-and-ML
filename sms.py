@@ -26,5 +26,6 @@ def send_sms(to_number, message):
     print("Response:", response.json())
 
 
-# Example test message:
-send_sms("+15555555555", "Test message from Python via ClickSend!")
+if __name__ == "__main__":
+    # Example usage for manual testing. Update USERNAME, API_KEY, and phone number before running.
+    send_sms("+15555555555", "Test message from Python via ClickSend!")
