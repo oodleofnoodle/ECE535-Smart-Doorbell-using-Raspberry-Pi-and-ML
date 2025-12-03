@@ -17,8 +17,8 @@ from tensorflow.keras.models import load_model
 from sms import send_sms
 
 
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "faces.h5"
+
+MODEL_PATH = "/home/aandoni/Desktop/ECE535-SmartDoorbell/ECE535-Smart-Doorbell-using-Raspberry-Pi-and-ML/faces.h5"
 
 # Update the class names if you retrain the model with different labels.
 CLASS_NAMES = ["den", "brad", "angie", "dman", "sussy"]
@@ -28,8 +28,6 @@ IMG_SIZE: Tuple[int, int] = (224, 224)
 
 
 def load_classifier(model_path: Path):
-    if not model_path.exists():
-        raise FileNotFoundError(f"Missing model file at {model_path}")
     return load_model(model_path)
 
 
@@ -131,7 +129,7 @@ def main():
     parser.add_argument(
         "--timeout",
         type=float,
-        default=3.0,
+        default=10.0,
         help="Seconds to wait for a frame before failing (default: 3.0).",
     )
     parser.add_argument(

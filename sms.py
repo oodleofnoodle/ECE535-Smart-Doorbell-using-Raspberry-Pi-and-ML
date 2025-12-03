@@ -1,8 +1,8 @@
 import requests
 from requests.auth import HTTPBasicAuth
 
-USERNAME = "YOUR_CLICKSEND_USERNAME"
-API_KEY = "YOUR_CLICKSEND_API_KEY"
+USERNAME = "jessiewang@umass.edu"
+API_KEY = "2ED477EE-40D6-8A8A-80C0-FD0DCA1C6270"
 
 def send_sms(to_number, message):
     url = "https://rest.clicksend.com/v3/sms/send"
@@ -28,4 +28,4 @@ def send_sms(to_number, message):
 
 if __name__ == "__main__":
     # Example usage for manual testing. Update USERNAME, API_KEY, and phone number before running.
-    send_sms("+15555555555", "Test message from Python via ClickSend!")
+    send_sms("+19789239228", "ALERT: SUSPICIOUS PERSON AT DOOR")
