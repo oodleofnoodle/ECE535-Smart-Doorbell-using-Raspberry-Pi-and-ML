@@ -11,13 +11,12 @@ from typing import Optional, Tuple
 
 import cv2
 import numpy as np
-from tensorflow.keras.models import load_model
+from keras.models import load_model
 
 from camera_capture import CameraCapture
 
 
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "faces.h5"
+MODEL_PATH = "/home/aandoni/Desktop/ECE535-SmartDoorbell/ECE535-Smart-Doorbell-using-Raspberry-Pi-and-ML/faces.h5"
 
 # Update the class names if you retrain the model with different labels.
 CLASS_NAMES = ["den", "brad", "angie", "dman", "sussy"]
@@ -27,8 +26,6 @@ IMG_SIZE: Tuple[int, int] = (224, 224)
 
 
 def load_classifier(model_path: Path):
-    if not model_path.exists():
-        raise FileNotFoundError(f"Missing model file at {model_path}")
     return load_model(model_path)
 
 
@@ -79,13 +76,14 @@ def save_frame_to_dir(frame: np.ndarray, output_dir: Path) -> Path:
 def main():
     # Fixed configuration values (no CLI args).
     source = "0"  # back camera index
-    use_picamera2 = False  # set True if you are on Raspberry Pi with PiCamera2
+    use_picamera2 = True  # set True if you are on Raspberry Pi with PiCamera2
     resolution: Tuple[int, int] = (640, 480)
     target_fps = 5
     rotate_180 = False
     timeout = 3.0
-    output_dir = BASE_DIR / "captured_back_frames"
-
+    output_dir = Path(
+    "/home/aandoni/Desktop/ECE535-SmartDoorbell/ECE535-Smart-Doorbell-using-Raspberry-Pi-and-ML/pictures/captured_back_frames/"
+)
     model = load_classifier(MODEL_PATH)
 
     capture = CameraCapture(
