@@ -39,7 +39,7 @@ The inference output block then takes the information learned about the image fr
 Finally the model update block describes the process of re-optimizing the TFLite model for the application. Actions in this block could be keeping track of power and latency of the model, optimizing on which model version with different hyper-parameters are used in different situations based on results, or possibly updating the TFLite model hyperparameters itself. 
 
 # Hardware Requirements
-Raspberry Pi 
+Raspberry Pi 5
 Pi Camera Module
 MicroSD
 
