@@ -40,7 +40,9 @@ Finally the model update block describes the process of re-optimizing the TFLite
 
 # Hardware Requirements
 Raspberry Pi 5
-Pi Camera Module
+
+Pi Camera Module 3
+
 MicroSD
 
 # Software Requirements 
